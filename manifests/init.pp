@@ -127,7 +127,8 @@ class unbound (
   }
 
   file { $hints_file:
-    mode => '0444',
+    mode    => '0444',
+    require => Exec['download-roothints'],
   }
 
   concat { $config_file:
