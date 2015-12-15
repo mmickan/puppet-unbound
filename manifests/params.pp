@@ -29,7 +29,7 @@ class unbound::params {
       $group            = 'unbound'
       $pidfile          = undef
       $fetch_client     = 'curl -o'
-      $validate_cmd      = '/sbin/unbound-checkconf %'
+      $validate_cmd     = '/usr/sbin/unbound-checkconf %'
     }
     'darwin': {
       $confdir          = '/opt/local/etc/unbound'
@@ -45,15 +45,22 @@ class unbound::params {
       $validate_cmd      = undef
     }
     'freebsd': {
-      $confdir          = '/usr/local/etc/unbound'
+      if versioncmp($::operatingsystemrelease, '10') < 0 {
+        $confdir        = '/usr/local/etc/unbound'
+        $service_name   = 'unbound'
+        $package_name   = 'dns/unbound'
+        $pidfile        = undef
+      } else {
+        $confdir        = '/var/unbound'
+        $service_name   = 'local_unbound'
+        $package_name   = undef
+        $pidfile        = '/var/run/local_unbound.pid'
+      }
       $logdir           = '/var/log/unbound'
-      $service_name     = 'unbound'
-      $package_name     = 'dns/unbound'
       $package_provider = undef
       $runtime_dir      = $confdir
       $owner            = 'unbound'
       $group            = 'unbound'
-      $pidfile          = undef
       $fetch_client     = 'fetch -o'
       $validate_cmd      = undef
     }
@@ -109,6 +116,7 @@ class unbound::params {
   $conf_d                     = "${confdir}/conf.d"
   $config_file                = "${confdir}/unbound.conf"
   $control_enable             = false
+  $control_setup_path         = '/usr/sbin/unbound-control-setup'
   $directory                  = $confdir
   $dlv_anchor_file            = undef
   $do_ip4                     = true
@@ -119,6 +127,8 @@ class unbound::params {
   $harden_dnssec_stripped     = true
   $harden_glue                = true
   $harden_referral_path       = true
+  $hide_identity              = true
+  $hide_version               = true
   $hints_file                 = "${confdir}/root.hints"
   $infra_cache_slabs          = undef
   $infra_host_ttl             = undef
@@ -156,4 +166,5 @@ class unbound::params {
   $val_permissive_mode        = false
   $verbosity                  = 1
   $custom_server_conf         = []
+  $skip_roothints_download    = false
 }

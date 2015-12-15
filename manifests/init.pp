@@ -23,6 +23,8 @@ class unbound (
   $harden_dnssec_stripped       = $unbound::params::harden_dnssec_stripped,
   $harden_glue                  = $unbound::params::harden_glue,
   $harden_referral_path         = $unbound::params::harden_referral_path,
+  $hide_identity                = $unbound::params::hide_identity,
+  $hide_version                 = $unbound::params::hide_version,
   $hints_file                   = $unbound::params::hints_file,
   $infra_cache_slabs            = $unbound::params::infra_cache_slabs,
   $infra_host_ttl               = $unbound::params::infra_host_ttl,
@@ -67,6 +69,7 @@ class unbound (
   $validate_cmd                 = $unbound::params::validate_cmd,
   $verbosity                    = $unbound::params::verbosity,
   $custom_server_conf           = $unbound::params::custom_server_conf,
+  $skip_roothints_download      = $unbound::params::skip_roothints_download,
 ) inherits unbound::params {
 
   if $package_name {
@@ -81,6 +84,7 @@ class unbound (
     Package[$package_name] -> File[$keys_d]
     Package[$package_name] -> File[$runtime_dir]
     Package[$package_name] -> Exec['download-roothints']
+    Package[$package_name] -> File[$hints_file]
   }
 
   service { $service_name:
@@ -88,9 +92,22 @@ class unbound (
     name      => $service_name,
     enable    => true,
     hasstatus => false,
-    restart   => 'unbound-control reload',
+  }
+  if $control_enable {
+    Service[$service_name] {
+      restart   => 'unbound-control reload',
+      require   => Class['unbound::remote'],
+    }
+    Package<| title == $package_name |> -> Class['unbound::remote']
+    include unbound::remote
   }
 
+  if $skip_roothints_download {
+    File[$hints_file] -> Exec['download-roothints']
+  } else {
+    Exec['download-roothints'] -> File[$hints_file]
+  }
+  
   file { [
     $confdir,
     $conf_d,
@@ -105,6 +122,7 @@ class unbound (
     path    => ['/usr/bin','/usr/local/bin'],
     before  => [ Concat::Fragment['unbound-header'] ],
   }
+  
   if $confdir == $runtime_dir {
     File[$confdir] {
       owner => $owner,
@@ -127,6 +145,7 @@ class unbound (
   }
 
   file { $hints_file:
+    ensure  => file,
     mode    => '0444',
     require => Exec['download-roothints'],
   }

@@ -4,15 +4,15 @@
 #
 define unbound::stub (
   $address,
-  $insecure = false
+  $insecure = false,
+  $type     = 'transparent',
 ) {
 
   if ! $address {
     fail('unbound::stub: address(es) must be specified.')
   }
-  unbound::stub::validate_addr{ "${address}_${name}":
-    address => $address,
-  }
+
+  validate_unbound_addr($address)
 
   include unbound::params
 
@@ -35,6 +35,6 @@ define unbound::stub (
   concat::fragment { "unbound-stub-${name}-local-zone":
     order   => '02',
     target  => $config_file,
-    content => "  local-zone: \"${name}\" transparent \n",
+    content => "  local-zone: \"${name}\" ${type} \n",
   }
 }
